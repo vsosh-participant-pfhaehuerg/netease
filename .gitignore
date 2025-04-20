@@ -24,16 +24,15 @@ wheels/
 venv/
 ENV/
 env/
-.env
-.venv
-env.bak/
-venv.bak/
+.env/
 
 # IDE
 .idea/
 .vscode/
 *.swp
 *.swo
+
+# OS
 .DS_Store
 Thumbs.db
 
@@ -56,8 +55,6 @@ logs/
 *.conf.old
 
 # System
-.DS_Store
-Thumbs.db
 desktop.ini
 
 # Project specific
