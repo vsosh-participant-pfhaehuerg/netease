@@ -1,0 +1,214 @@
+{% extends "base.html" %}
+
+{% block title %}Static Site - Nginx Manager{% endblock %}
+
+{% block content %}
+<div class="row mt-4">
+    <div class="col-md-12 d-flex justify-content-between align-items-center">
+        <h1>Create Static Website</h1>
+        <div>
+            <a href="{{ url_for('sites.index') }}" class="btn btn-secondary">
+                <i class="fas fa-arrow-left"></i> Back
+            </a>
+        </div>
+    </div>
+</div>
+
+<div class="row mt-4">
+    <div class="col-md-12">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="card-title">Static Website Configuration</h5>
+            </div>
+            <div class="card-body">
+                <form id="staticSiteForm" action="{{ url_for('sites.create_static') }}" method="post">
+                    <div class="row mb-3">
+                        <div class="col-md-6">
+                            <label for="server_name" class="form-label">Server Name</label>
+                            <input type="text" id="server_name" name="server_name" class="form-control" placeholder="example.com" required>
+                            <div class="form-text">Domain name for the site (e.g., example.com or localhost)</div>
+                        </div>
+                        <div class="col-md-6">
+                            <label for="listen_port" class="form-label">Listen Port</label>
+                            <input type="number" id="listen_port" name="listen_port" class="form-control" value="80" required>
+                            <div class="form-text">The port Nginx will listen on (usually 80 for HTTP)</div>
+                        </div>
+                    </div>
+                    
+                    <div class="row mb-3">
+                        <div class="col-md-12">
+                            <div class="card">
+                                <div class="card-header bg-light">
+                                    <h6 class="mb-0">Website Root Directory</h6>
+                                </div>
+                                <div class="card-body">
+                                    <div class="form-check mb-3">
+                                        <input class="form-check-input" type="checkbox" id="create_dir" name="create_dir" checked>
+                                        <label class="form-check-label" for="create_dir">
+                                            Create a new directory in /var/www
+                                        </label>
+                                    </div>
+                                    
+                                    <div id="newDirSection" class="mb-3">
+                                        <label for="site_name" class="form-label">Site Name</label>
+                                        <input type="text" id="site_name" name="site_name" class="form-control" placeholder="mysite">
+                                        <div class="form-text">This will create /var/www/sitename</div>
+                                    </div>
+                                    
+                                    <div id="existingDirSection" class="mb-3" style="display:none;">
+                                        <label for="root_path" class="form-label">Root Path</label>
+                                        <div class="input-group">
+                                            <select id="root_path" name="root_path" class="form-select">
+                                                <option value="">Select an existing directory</option>
+                                                {% for dir in www_dirs %}
+                                                <option value="/var/www/{{ dir }}">{{ dir }}</option>
+                                                {% endfor %}
+                                            </select>
+                                            <button type="button" class="btn btn-outline-secondary" id="browseBtn">Browse</button>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="row mb-3">
+                        <div class="col-md-6">
+                            <label for="index" class="form-label">Index Files</label>
+                            <input type="text" id="index" name="index" class="form-control" value="index.html index.htm" required>
+                            <div class="form-text">Default files to serve (space-separated)</div>
+                        </div>
+                        <div class="col-md-6">
+                            <label for="config_name" class="form-label">Configuration Name</label>
+                            <div class="input-group">
+                                <input type="text" id="config_name" name="config_name" class="form-control" placeholder="static-site" required>
+                                <span class="input-group-text">.conf</span>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="d-grid gap-2">
+                        <button type="submit" class="btn btn-primary">
+                            <i class="fas fa-save"></i> Create Configuration
+                        </button>
+                    </div>
+                </form>
+                
+                <div class="alert alert-info mt-3">
+                    <i class="fas fa-info-circle me-2"></i> After creating the configuration, you'll be redirected to the file manager where you can upload and manage your files.
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- File Browser Modal -->
+<div class="modal fade" id="fileBrowserModal" tabindex="-1" aria-labelledby="fileBrowserModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="fileBrowserModalLabel">File Browser</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <div class="file-browser-content">
+                    <p>Loading directory structure...</p>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                <button type="button" class="btn btn-primary" id="selectDirBtn">Select Directory</button>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    // Toggle between new directory and existing directory
+    document.getElementById('create_dir').addEventListener('change', function() {
+        if (this.checked) {
+            document.getElementById('newDirSection').style.display = 'block';
+            document.getElementById('existingDirSection').style.display = 'none';
+        } else {
+            document.getElementById('newDirSection').style.display = 'none';
+            document.getElementById('existingDirSection').style.display = 'block';
+        }
+    });
+    
+    // Fill config name based on site name
+    document.getElementById('site_name').addEventListener('input', function() {
+        if (this.value) {
+            document.getElementById('config_name').value = this.value + '-site';
+            document.getElementById('server_name').value = document.getElementById('server_name').value || 'localhost';
+        }
+    });
+    
+    // Open file browser modal
+    document.getElementById('browseBtn').addEventListener('click', function() {
+        var modal = new bootstrap.Modal(document.getElementById('fileBrowserModal'));
+        
+        // Load root directory
+        loadDirectory('');
+        
+        modal.show();
+    });
+    
+    // Set the current path for use in the modal
+    let currentBrowsePath = '';
+    
+    // Load directory contents
+    function loadDirectory(path) {
+        currentBrowsePath = path;
+        
+        fetch(`{{ url_for('sites.file_manager', site_path='') }}${path}`)
+            .then(response => response.text())
+            .then(html => {
+                // Extract just the content we need
+                const parser = new DOMParser();
+                const doc = parser.parseFromString(html, 'text/html');
+                const fileManagerContent = doc.querySelector('.file-manager-content');
+                
+                if (fileManagerContent) {
+                    // Modify links to work within the modal
+                    const links = fileManagerContent.querySelectorAll('a[href]');
+                    links.forEach(link => {
+                        const href = link.getAttribute('href');
+                        if (href.includes('/file_manager/')) {
+                            // Extract path from URL
+                            const pathMatch = href.match(/\/file_manager\/(.+)/);
+                            if (pathMatch && pathMatch[1]) {
+                                link.setAttribute('data-path', decodeURIComponent(pathMatch[1]));
+                                link.setAttribute('href', '#');
+                                link.addEventListener('click', function(e) {
+                                    e.preventDefault();
+                                    loadDirectory(this.getAttribute('data-path'));
+                                });
+                            }
+                        }
+                    });
+                    
+                    document.querySelector('.file-browser-content').innerHTML = fileManagerContent.outerHTML;
+                } else {
+                    document.querySelector('.file-browser-content').innerHTML = 
+                        '<div class="alert alert-warning">Unable to load directory structure</div>';
+                }
+            })
+            .catch(error => {
+                document.querySelector('.file-browser-content').innerHTML = 
+                    `<div class="alert alert-danger">Error loading directory: ${error.message}</div>`;
+            });
+    }
+    
+    // Select directory button
+    document.getElementById('selectDirBtn').addEventListener('click', function() {
+        if (currentBrowsePath) {
+            document.getElementById('root_path').value = '/var/www/' + currentBrowsePath;
+            bootstrap.Modal.getInstance(document.getElementById('fileBrowserModal')).hide();
+        } else {
+            alert('Please navigate to a directory to select it');
+        }
+    });
+</script>
+{% endblock %} 

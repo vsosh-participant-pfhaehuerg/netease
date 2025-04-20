@@ -1,0 +1,149 @@
+{% extends "base.html" %}
+
+{% block title %}Панель управления - NetEase{% endblock %}
+
+{% block content %}
+<div class="row mt-4">
+    <div class="col-md-12">
+        <h1 class="mb-4">Управление веб-сервером NetEase</h1>
+    </div>
+</div>
+
+<div class="row">
+    <!-- Quick Actions Card -->
+    <div class="col-md-6">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="card-title">Быстрые действия</h5>
+            </div>
+            <div class="card-body">
+                <div class="d-grid gap-3">
+                    <a href="{{ url_for('configs.index') }}" class="btn btn-primary">
+                        <i class="fas fa-cogs me-2"></i> Управление конфигурациями
+                    </a>
+                    <a href="{{ url_for('sites.proxy') }}" class="btn btn-success">
+                        <i class="fas fa-exchange-alt me-2"></i> Создать прокси-сервер
+                    </a>
+                    <a href="{{ url_for('sites.static_site') }}" class="btn btn-info">
+                        <i class="fas fa-file me-2"></i> Создать статический сайт
+                    </a>
+                    <button id="dashboardTestBtn" class="btn btn-secondary">
+                        <i class="fas fa-check me-2"></i> Проверить конфигурацию
+                    </button>
+                    <button id="dashboardReloadBtn" class="btn btn-warning">
+                        <i class="fas fa-sync me-2"></i> Перезагрузить Nginx
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Info Card -->
+    <div class="col-md-6">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="card-title">О NetEase</h5>
+            </div>
+            <div class="card-body">
+                <p>Добро пожаловать в веб-панель NetEase. Этот инструмент поможет вам:</p>
+                <ul class="list-group list-group-flush">
+                    <li class="list-group-item">
+                        <i class="fas fa-check-circle text-success me-2"></i> 
+                        Управлять и редактировать конфигурационные файлы Nginx
+                    </li>
+                    <li class="list-group-item">
+                        <i class="fas fa-check-circle text-success me-2"></i> 
+                        Создавать прокси-серверы и настраивать статические сайты
+                    </li>
+                    <li class="list-group-item">
+                        <i class="fas fa-check-circle text-success me-2"></i> 
+                        Проверять конфигурации на уязвимости безопасности
+                    </li>
+                    <li class="list-group-item">
+                        <i class="fas fa-check-circle text-success me-2"></i> 
+                        Тестировать и перезагружать конфигурации Nginx
+                    </li>
+                    <li class="list-group-item">
+                        <i class="fas fa-check-circle text-success me-2"></i> 
+                        Включать/отключать конфигурации серверов
+                    </li>
+                </ul>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row mt-4">
+    <!-- Features Overview -->
+    <div class="col-md-12">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="card-title">Обзор возможностей</h5>
+            </div>
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-md-4 mb-4">
+                        <div class="feature-box text-center p-3 border rounded">
+                            <i class="fas fa-server fa-3x mb-3 text-primary"></i>
+                            <h5>Настройка прокси</h5>
+                            <p>Создавайте и управляйте конфигурациями прокси для ваших приложений.</p>
+                        </div>
+                    </div>
+                    <div class="col-md-4 mb-4">
+                        <div class="feature-box text-center p-3 border rounded">
+                            <i class="fas fa-file-code fa-3x mb-3 text-success"></i>
+                            <h5>Статические файлы</h5>
+                            <p>Настройте обслуживание статических файлов для веб-сайтов и приложений.</p>
+                        </div>
+                    </div>
+                    <div class="col-md-4 mb-4">
+                        <div class="feature-box text-center p-3 border rounded">
+                            <i class="fas fa-shield-alt fa-3x mb-3 text-warning"></i>
+                            <h5>Анализ безопасности</h5>
+                            <p>Проверяйте ваши конфигурации на наличие уязвимостей безопасности.</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    document.getElementById('dashboardTestBtn').addEventListener('click', function() {
+        $.ajax({
+            url: '{{ url_for("configs.test") }}',
+            method: 'POST',
+            success: function(response) {
+                $('#resultModalTitle').text('Результат проверки конфигурации');
+                $('#resultModalContent').text(response.output);
+                $('#resultModalContent').removeClass('text-success text-danger');
+                $('#resultModalContent').addClass(response.success ? 'text-success' : 'text-danger');
+                new bootstrap.Modal(document.getElementById('resultModal')).show();
+            },
+            error: function() {
+                alert('Не удалось проверить конфигурацию');
+            }
+        });
+    });
+    
+    document.getElementById('dashboardReloadBtn').addEventListener('click', function() {
+        $.ajax({
+            url: '{{ url_for("configs.reload") }}',
+            method: 'POST',
+            success: function(response) {
+                $('#resultModalTitle').text('Результат перезагрузки Nginx');
+                $('#resultModalContent').text(response.output);
+                $('#resultModalContent').removeClass('text-success text-danger');
+                $('#resultModalContent').addClass(response.success ? 'text-success' : 'text-danger');
+                new bootstrap.Modal(document.getElementById('resultModal')).show();
+            },
+            error: function() {
+                alert('Не удалось перезагрузить Nginx');
+            }
+        });
+    });
+</script>
+{% endblock %} 

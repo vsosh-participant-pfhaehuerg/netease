@@ -1,0 +1,112 @@
+{% extends "base.html" %}
+
+{% block title %}Create Proxy Server - Nginx Manager{% endblock %}
+
+{% block content %}
+<div class="row mt-4">
+    <div class="col-md-12 d-flex justify-content-between align-items-center">
+        <h1>Create Proxy Server</h1>
+        <div>
+            <a href="{{ url_for('sites.index') }}" class="btn btn-secondary">
+                <i class="fas fa-arrow-left"></i> Back
+            </a>
+        </div>
+    </div>
+</div>
+
+<div class="row mt-4">
+    <div class="col-md-8">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="card-title">Proxy Configuration</h5>
+            </div>
+            <div class="card-body">
+                <form action="{{ url_for('sites.create_proxy') }}" method="post">
+                    <div class="mb-3">
+                        <label for="config_name" class="form-label">Configuration Name</label>
+                        <div class="input-group">
+                            <input type="text" id="config_name" name="config_name" class="form-control" placeholder="myproxy" required>
+                            <span class="input-group-text">.conf</span>
+                        </div>
+                        <div class="form-text">The name of the configuration file (without the .conf extension)</div>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label for="server_name" class="form-label">Server Name</label>
+                        <input type="text" id="server_name" name="server_name" class="form-control" placeholder="example.com" required>
+                        <div class="form-text">The domain name for this server (can use multiple domains separated by spaces)</div>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label for="proxy_pass" class="form-label">Proxy Pass URL</label>
+                        <input type="text" id="proxy_pass" name="proxy_pass" class="form-control" placeholder="http://localhost:8080" required>
+                        <div class="form-text">The URL to proxy requests to, including protocol, hostname, and port</div>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label for="listen_port" class="form-label">Listen Port</label>
+                        <input type="number" id="listen_port" name="listen_port" class="form-control" value="80" min="1" max="65535" required>
+                        <div class="form-text">The port Nginx will listen on for this server</div>
+                    </div>
+                    
+                    <div class="d-grid gap-2">
+                        <button type="submit" class="btn btn-primary">
+                            <i class="fas fa-save"></i> Create Proxy Configuration
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-md-4">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="card-title">About Proxy Servers</h5>
+            </div>
+            <div class="card-body">
+                <p>A reverse proxy server is a type of proxy server that retrieves resources on behalf of a client from one or more servers.</p>
+                
+                <h6 class="mt-3">Common use cases:</h6>
+                <ul>
+                    <li>Forwarding requests to application servers (Node.js, Ruby, Python, etc.)</li>
+                    <li>Load balancing between multiple backend servers</li>
+                    <li>URL rewriting and path handling</li>
+                    <li>API gateways</li>
+                </ul>
+                
+                <h6 class="mt-3">Generated configuration will include:</h6>
+                <ul>
+                    <li>Basic proxy_pass directive</li>
+                    <li>Common proxy headers (Host, X-Real-IP, etc.)</li>
+                    <li>Proper forwarding of protocols</li>
+                </ul>
+                
+                <div class="alert alert-info mt-3">
+                    <i class="fas fa-info-circle me-2"></i> The generated configuration can be modified later to add more features like SSL, caching, or additional headers.
+                </div>
+            </div>
+        </div>
+        
+        <div class="card mt-4">
+            <div class="card-header">
+                <h5 class="card-title">Example Configuration</h5>
+            </div>
+            <div class="card-body">
+                <pre class="bg-light p-3 border rounded"><code>server {
+    listen 80;
+    server_name example.com;
+    
+    location / {
+        proxy_pass http://localhost:8080;
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+    }
+}</code></pre>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %} 

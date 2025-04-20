@@ -1,0 +1,141 @@
+{% extends "base.html" %}
+
+{% block title %}Create Site - Nginx Manager{% endblock %}
+
+{% block content %}
+<div class="row mt-4">
+    <div class="col-md-12 d-flex justify-content-between align-items-center">
+        <h1>Create Nginx Site</h1>
+        <a href="{{ url_for('configs.index') }}" class="btn btn-secondary">
+            <i class="fas fa-arrow-left"></i> Back to Configurations
+        </a>
+    </div>
+</div>
+
+<div class="row mt-4">
+    <div class="col-md-12">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="card-title">Choose Site Type</h5>
+            </div>
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-md-4 mb-4">
+                        <div class="card h-100">
+                            <div class="card-body text-center">
+                                <i class="fas fa-exchange-alt fa-4x mb-3 text-primary"></i>
+                                <h5 class="card-title">Proxy Server</h5>
+                                <p class="card-text">Create a proxy configuration to forward requests to another server or application</p>
+                                <p class="text-muted small">Configuration will be automatically tested, enabled, and applied</p>
+                                <a href="{{ url_for('sites.proxy') }}" class="btn btn-primary mt-3">Create Proxy</a>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="col-md-4 mb-4">
+                        <div class="card h-100">
+                            <div class="card-body text-center">
+                                <i class="fas fa-file-code fa-4x mb-3 text-success"></i>
+                                <h5 class="card-title">Static Site</h5>
+                                <p class="card-text">Create a configuration to serve static files from a directory</p>
+                                <p class="text-muted small">Configuration will be automatically tested, enabled, and applied with direct access to the file manager</p>
+                                <a href="{{ url_for('sites.static_site') }}" class="btn btn-success mt-3">Create Static Site</a>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="col-md-4 mb-4">
+                        <div class="card h-100">
+                            <div class="card-body text-center">
+                                <i class="fas fa-terminal fa-4x mb-3 text-warning"></i>
+                                <h5 class="card-title">Advanced Configuration</h5>
+                                <p class="card-text">Create a custom configuration for advanced use cases</p>
+                                <a href="{{ url_for('sites.advanced') }}" class="btn btn-warning mt-3">Create Advanced</a>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row mt-4">
+    <div class="col-md-12">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="card-title">Common Nginx Use Cases</h5>
+            </div>
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-md-6">
+                        <h6><i class="fas fa-server me-2"></i> Reverse Proxy</h6>
+                        <p>
+                            A reverse proxy is a server that sits between client devices and a web server,
+                            forwarding client requests to the appropriate server and returning the server's
+                            responses to the clients. Use the <a href="{{ url_for('sites.proxy') }}">Proxy Server</a> template.
+                        </p>
+                    </div>
+                    
+                    <div class="col-md-6">
+                        <h6><i class="fas fa-shield-alt me-2"></i> Load Balancer</h6>
+                        <p>
+                            Nginx can distribute incoming traffic across multiple servers to balance the load.
+                            This improves performance and reliability. Use the <a href="{{ url_for('sites.advanced') }}">Advanced</a> template.
+                        </p>
+                    </div>
+                    
+                    <div class="col-md-6 mt-3">
+                        <h6><i class="fas fa-lock me-2"></i> SSL/TLS Termination</h6>
+                        <p>
+                            Nginx can handle SSL/TLS encryption and decryption, reducing the burden on your application servers.
+                            Create a custom configuration with the <a href="{{ url_for('sites.advanced') }}">Advanced</a> template.
+                        </p>
+                    </div>
+                    
+                    <div class="col-md-6 mt-3">
+                        <h6><i class="fas fa-file me-2"></i> Static Content Serving</h6>
+                        <p>
+                            Nginx excels at efficiently serving static files like HTML, CSS, JavaScript, and images.
+                            Use the <a href="{{ url_for('sites.static_site') }}">Static Site</a> template.
+                        </p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row mt-4">
+    <div class="col-md-12">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="card-title">Automatic Configuration Process</h5>
+            </div>
+            <div class="card-body">
+                <div class="alert alert-info">
+                    <i class="fas fa-info-circle me-2"></i> 
+                    <strong>Streamlined Configuration Process</strong>
+                </div>
+                
+                <p>When creating a new site configuration, the system will automatically:</p>
+                
+                <ol>
+                    <li><strong>Create and save</strong> the configuration file</li>
+                    <li><strong>Test</strong> the configuration for errors</li>
+                    <li><strong>Enable</strong> the configuration if the test passes</li>
+                    <li><strong>Reload Nginx</strong> to apply the changes immediately</li>
+                    <li><strong>Redirect</strong> you to the appropriate management page:
+                        <ul>
+                            <li>For static sites: File Manager to upload and manage your files</li>
+                            <li>For proxy and advanced configurations: Configuration details page</li>
+                        </ul>
+                    </li>
+                </ol>
+                
+                <p>This automated workflow ensures your sites are properly configured and immediately available after creation.</p>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %} 

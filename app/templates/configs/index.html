@@ -1,0 +1,144 @@
+{% extends "base.html" %}
+
+{% block title %}Configurations - Nginx Manager{% endblock %}
+
+{% block content %}
+<div class="row mt-4">
+    <div class="col-md-12 d-flex justify-content-between align-items-center">
+        <h1>Nginx Configurations</h1>
+        <a href="{{ url_for('configs.new') }}" class="btn btn-primary">
+            <i class="fas fa-plus"></i> New Configuration
+        </a>
+    </div>
+</div>
+
+<div class="row mt-4">
+    <div class="col-md-12">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="card-title">Available Configurations</h5>
+            </div>
+            <div class="card-body">
+                {% if configs %}
+                <div class="table-responsive">
+                    <table class="table table-hover">
+                        <thead>
+                            <tr>
+                                <th>Configuration</th>
+                                <th>Status</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for config in configs %}
+                            <tr>
+                                <td>{{ config }}</td>
+                                <td>
+                                    {% if config in enabled_configs %}
+                                    <span class="badge bg-success">Enabled</span>
+                                    {% else %}
+                                    <span class="badge bg-secondary">Disabled</span>
+                                    {% endif %}
+                                </td>
+                                <td>
+                                    <div class="btn-group" role="group">
+                                        <a href="{{ url_for('configs.view', config_name=config) }}" class="btn btn-sm btn-info" title="View">
+                                            <i class="fas fa-eye"></i>
+                                        </a>
+                                        <a href="{{ url_for('configs.edit', config_name=config) }}" class="btn btn-sm btn-warning" title="Edit">
+                                            <i class="fas fa-edit"></i>
+                                        </a>
+                                        {% if config in static_sites %}
+                                        <a href="{{ url_for('sites.file_manager', site_path=static_sites[config]) }}" class="btn btn-sm btn-primary" title="File Manager">
+                                            <i class="fas fa-folder-open"></i>
+                                        </a>
+                                        {% endif %}
+                                        {% if config in enabled_configs %}
+                                        <button type="button" class="btn btn-sm btn-secondary" 
+                                                onclick="confirmAction('{{ url_for('configs.disable', config_name=config) }}', 'disable', '{{ config }}')" title="Disable">
+                                            <i class="fas fa-power-off"></i>
+                                        </button>
+                                        {% else %}
+                                        <button type="button" class="btn btn-sm btn-success" 
+                                                onclick="confirmAction('{{ url_for('configs.enable', config_name=config) }}', 'enable', '{{ config }}')" title="Enable">
+                                            <i class="fas fa-power-off"></i>
+                                        </button>
+                                        {% endif %}
+                                        <button type="button" class="btn btn-sm btn-danger" 
+                                                onclick="confirmAction('{{ url_for('configs.delete', config_name=config) }}', 'delete', '{{ config }}')" title="Delete">
+                                            <i class="fas fa-trash"></i>
+                                        </button>
+                                    </div>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+                {% else %}
+                <div class="alert alert-info">
+                    <i class="fas fa-info-circle me-2"></i> No configurations found. 
+                    <a href="{{ url_for('configs.new') }}">Create a new configuration</a> or 
+                    <a href="{{ url_for('sites.index') }}">use our site templates</a>.
+                </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Confirmation Modal -->
+<div class="modal fade" id="confirmationModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="confirmationModalTitle">Confirm Action</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body" id="confirmationModalBody">
+                Are you sure you want to perform this action?
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                <form id="confirmForm" method="post" action="">
+                    <button type="submit" class="btn btn-danger">Confirm</button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    function confirmAction(url, action, configName) {
+        let actionText = {
+            'delete': 'delete',
+            'enable': 'enable',
+            'disable': 'disable'
+        };
+        
+        let actionClass = {
+            'delete': 'danger',
+            'enable': 'success',
+            'disable': 'warning'
+        };
+        
+        let confirmationModal = document.getElementById('confirmationModal');
+        let confirmForm = document.getElementById('confirmForm');
+        let confirmationModalBody = document.getElementById('confirmationModalBody');
+        let confirmationModalTitle = document.getElementById('confirmationModalTitle');
+        
+        confirmationModalTitle.textContent = `Confirm ${actionText[action].charAt(0).toUpperCase() + actionText[action].slice(1)}`;
+        confirmationModalBody.textContent = `Are you sure you want to ${actionText[action]} the configuration "${configName}"?`;
+        confirmForm.action = url;
+        
+        // Change button class based on action
+        let submitBtn = confirmForm.querySelector('button[type="submit"]');
+        submitBtn.className = `btn btn-${actionClass[action]}`;
+        submitBtn.textContent = `Confirm ${actionText[action].charAt(0).toUpperCase() + actionText[action].slice(1)}`;
+        
+        new bootstrap.Modal(confirmationModal).show();
+    }
+</script>
+{% endblock %} 

@@ -1,0 +1,552 @@
+{% extends "base.html" %}
+
+{% block title %}{% if edit_mode %}Редактирование{% else %}Просмотр{% endif %} конфигурации - NetEase{% endblock %}
+
+{% block head_extra %}
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.3/codemirror.min.css">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.3/theme/monokai.min.css">
+<style>
+    .CodeMirror {
+        height: 600px;
+        border: 1px solid #ddd;
+        border-radius: 4px;
+    }
+    .validation-issue {
+        margin-bottom: 1.5rem;
+        padding: 1rem;
+        border-radius: 0.25rem;
+    }
+    .validation-issue.high {
+        background-color: rgba(220, 53, 69, 0.1);
+        border-left: 4px solid #dc3545;
+    }
+    .validation-issue.medium {
+        background-color: rgba(255, 193, 7, 0.1);
+        border-left: 4px solid #ffc107;
+    }
+    .validation-issue.low {
+        background-color: rgba(13, 202, 240, 0.1);
+        border-left: 4px solid #0dcaf0;
+    }
+    .validation-issue.success {
+        background-color: rgba(25, 135, 84, 0.1);
+        border-left: 4px solid #198754;
+    }
+    .mode-toggle {
+        cursor: pointer;
+        padding: 0.5rem 1rem;
+        border-radius: 0.25rem;
+        transition: all 0.3s ease;
+    }
+    .mode-toggle.active {
+        background-color: #f8f9fa;
+        font-weight: bold;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="row mt-4">
+    <div class="col-md-12 d-flex justify-content-between align-items-center">
+        <div class="d-flex align-items-center">
+            <h1 class="me-3">Configuration: {{ config_name }}</h1>
+            <div class="btn-group" role="group">
+                <span id="viewToggle" class="mode-toggle {% if not edit_mode %}active{% endif %}" onclick="toggleMode(false)">
+                    <i class="fas fa-eye"></i> Просмотр
+                </span>
+                <span id="editToggle" class="mode-toggle {% if edit_mode %}active{% endif %}" onclick="toggleMode(true)">
+                    <i class="fas fa-edit"></i> Редактировать
+                </span>
+            </div>
+        </div>
+        <div>
+            <button type="submit" form="configForm" class="btn btn-primary me-2" id="saveBtn" {% if not edit_mode %}style="display:none"{% endif %}>
+                <i class="fas fa-save"></i> Сохранить изменения
+            </button>
+            <a href="{{ url_for('configs.index') }}" class="btn btn-secondary">
+                <i class="fas fa-arrow-left"></i> Назад к списку
+            </a>
+        </div>
+    </div>
+</div>
+
+<div class="row mt-4">
+    <div class="col-md-8">
+        <div class="card">
+            <div class="card-header">
+                <div class="d-flex justify-content-between align-items-center">
+                    <h5 class="card-title mb-0">Содержание конфигурации</h5>
+                    <div id="validationStatus">
+                        <span class="badge bg-info">Проверка...</span>
+                    </div>
+                </div>
+            </div>
+            <div class="card-body">
+                <form id="configForm" action="{{ url_for('configs.save') }}" method="post">
+                    <input type="hidden" name="config_name" value="{{ config_name }}">
+                    <textarea id="editor" name="content" class="form-control code-editor">{{ content }}</textarea>
+                    
+                    <div id="validationResults" class="mb-3 mt-3" style="display: none;">
+                        <div class="d-flex justify-content-between align-items-center mb-2">
+                            <h5 class="mb-0">Результаты проверки</h5>
+                            <button type="button" id="applyAllFixesBtn" class="btn btn-primary btn-sm" {% if not edit_mode %}style="display:none"{% endif %}>
+                                <i class="fas fa-magic"></i> Применить все исправления
+                            </button>
+                        </div>
+                        <div id="validationIssues"></div>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-md-4">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="card-title">Действия</h5>
+            </div>
+            <div class="card-body">
+                <div class="d-grid gap-2">
+                    <button type="submit" form="configForm" class="btn btn-primary" id="actionSaveBtn" {% if not edit_mode %}style="display:none"{% endif %}>
+                        <i class="fas fa-save"></i> Сохранить изменения
+                    </button>
+                    
+                    <button type="button" class="btn btn-success" id="applyAllFixesActionBtn" {% if not edit_mode %}style="display:none"{% endif %}>
+                        <i class="fas fa-magic"></i> Применить все исправления
+                    </button>
+                    
+                    <button type="button" class="btn btn-primary" id="fileManagerBtn" style="display: none;">
+                        <i class="fas fa-folder-open"></i> Управление файлами
+                    </button>
+                    
+                    <button type="button" class="btn btn-danger" id="deleteBtn" data-delete-url="{{ url_for('configs.delete', config_name=config_name) }}">
+                        <i class="fas fa-trash"></i> Удалить конфигурацию
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <div class="card mt-4" id="securityAnalysisCard">
+            <div class="card-header">
+                <h5 class="card-title">Анализ безопасности</h5>
+            </div>
+            <div class="card-body" id="securityAnalysisContent">
+                {% if issues %}
+                    <div class="mb-3">
+                        <span class="badge bg-danger">{{ issues|selectattr('level', 'equalto', 'high')|list|length }} Высокий</span>
+                        <span class="badge bg-warning">{{ issues|selectattr('level', 'equalto', 'medium')|list|length }} Средний</span>
+                        <span class="badge bg-info">{{ issues|selectattr('level', 'equalto', 'low')|list|length }} Низкий</span>
+                    </div>
+                    
+                    {% for issue in issues %}
+                        <div class="validation-issue {{ issue.level }} mb-3">
+                            <h6>{{ issue.message }}</h6>
+                            <p>{{ issue.recommendation }}</p>
+                            <pre><code>{{ issue.code }}</code></pre>
+                            {% if edit_mode %}
+                            <button class="btn btn-sm btn-primary apply-server-fix" data-code="{{ issue.code }}">Применить исправление</button>
+                            {% endif %}
+                        </div>
+                    {% endfor %}
+                {% else %}
+                    <div class="alert alert-success">
+                        <i class="fas fa-check-circle me-2"></i> Проблем безопасности не обнаружено!
+                    </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Confirmation Modal -->
+<div class="modal fade" id="confirmDeleteModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Подтвердите удаление</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                Вы уверены, что хотите удалить конфигурацию "{{ config_name }}"?
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Отмена</button>
+                <form id="deleteForm" method="post" action="">
+                    <button type="submit" class="btn btn-danger">Удалить</button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.3/codemirror.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.3/mode/nginx/nginx.min.js"></script>
+<script>
+    // Current editing mode
+    let editMode = "{{ edit_mode|lower }}" === "true";
+    let originalContent = "";
+    let editor;
+    let validationTimer = null;
+    
+    // Initialize CodeMirror
+    $(document).ready(function() {
+        editor = CodeMirror.fromTextArea(document.getElementById('editor'), {
+            mode: 'nginx',
+            theme: 'monokai',
+            lineNumbers: true,
+            indentUnit: 4,
+            lineWrapping: true,
+            readOnly: !editMode,
+            extraKeys: {
+                "Tab": function(cm) {
+                    cm.replaceSelection("    ", "end");
+                }
+            }
+        });
+        
+        originalContent = editor.getValue();
+        
+        // Auto-validate on load
+        validateConfiguration();
+        
+        // Add event to auto-validate on content change with debounce
+        editor.on('change', function() {
+            if (validationTimer) {
+                clearTimeout(validationTimer);
+            }
+            
+            // Show validating indicator
+            document.getElementById('validationStatus').innerHTML = '<span class="badge bg-info">Validating...</span>';
+            
+            // Debounce validation to avoid too many requests
+            validationTimer = setTimeout(function() {
+                validateConfiguration();
+            }, 1000);
+        });
+        
+        // Check if this is a static site configuration
+        $.ajax({
+            url: '{{ url_for("sites.get_static_site_path", config_name=config_name) }}',
+            method: 'GET',
+            dataType: 'json',
+            success: function(response) {
+                if (response.success && response.is_static_site) {
+                    // Show file manager button and set the URL
+                    var fileManagerBtn = document.getElementById('fileManagerBtn');
+                    fileManagerBtn.style.display = 'block';
+                    fileManagerBtn.addEventListener('click', function() {
+                        window.location.href = '{{ url_for("sites.file_manager", site_path="") }}' + response.site_path;
+                    });
+                }
+            }
+        });
+
+        // Set up delete button event handler
+        document.getElementById('deleteBtn').addEventListener('click', function() {
+            const deleteUrl = this.getAttribute('data-delete-url');
+            confirmDelete(deleteUrl);
+        });
+    });
+    
+    // Toggle between view and edit modes
+    function toggleMode(isEdit) {
+        editMode = isEdit;
+        
+        // Toggle UI elements
+        document.getElementById('viewToggle').classList.toggle('active', !isEdit);
+        document.getElementById('editToggle').classList.toggle('active', isEdit);
+        document.getElementById('saveBtn').style.display = isEdit ? 'inline-block' : 'none';
+        document.getElementById('actionSaveBtn').style.display = isEdit ? 'block' : 'none';
+        document.getElementById('applyAllFixesActionBtn').style.display = isEdit ? 'block' : 'none';
+        
+        // Update CodeMirror mode
+        editor.setOption('readOnly', !isEdit);
+        
+        // Show/hide apply fixes buttons
+        const applyButtons = document.querySelectorAll('.apply-server-fix');
+        applyButtons.forEach(btn => {
+            btn.style.display = isEdit ? 'inline-block' : 'none';
+        });
+        
+        // Hide/show apply all fixes button
+        document.getElementById('applyAllFixesBtn').style.display = 
+            (isEdit && document.getElementById('validationResults').style.display !== 'none') ? 'block' : 'none';
+            
+        // Refresh editor to apply changes
+        editor.refresh();
+    }
+    
+    // Global variable to store all issues
+    let validationIssues = [];
+    
+    // Validate configuration
+    function validateConfiguration() {
+        var content = editor.getValue();
+        
+        $.ajax({
+            url: '{{ url_for("configs.validate") }}',
+            method: 'POST',
+            data: {
+                content: content
+            },
+            success: function(response) {
+                var validationResultsDiv = document.getElementById('validationResults');
+                var validationIssuesDiv = document.getElementById('validationIssues');
+                var securityAnalysisContent = document.getElementById('securityAnalysisContent');
+                var validationStatusDiv = document.getElementById('validationStatus');
+                
+                validationIssuesDiv.innerHTML = '';
+                
+                if (response.success) {
+                    validationIssues = response.issues || [];
+                    
+                    // Update the security analysis card
+                    let analysisHtml = '';
+                    
+                    if (validationIssues.length > 0) {
+                        document.getElementById('applyAllFixesBtn').style.display = editMode ? 'block' : 'none';
+                        
+                        // Add issue statistics
+                        const highCount = validationIssues.filter(issue => issue.level === 'high').length;
+                        const mediumCount = validationIssues.filter(issue => issue.level === 'medium').length;
+                        const lowCount = validationIssues.filter(issue => issue.level === 'low').length;
+                        
+                        // Update validation status
+                        if (highCount > 0) {
+                            validationStatusDiv.innerHTML = '<span class="badge bg-danger">' + highCount + ' Серьезных проблем</span>';
+                        } else if (mediumCount > 0) {
+                            validationStatusDiv.innerHTML = '<span class="badge bg-warning">' + mediumCount + ' Средних проблем</span>';
+                        } else {
+                            validationStatusDiv.innerHTML = '<span class="badge bg-info">' + lowCount + ' Незначительных проблем</span>';
+                        }
+                        
+                        analysisHtml += '<div class="mb-3">' +
+                            '<span class="badge bg-danger">' + highCount + ' Высокий</span> ' +
+                            '<span class="badge bg-warning">' + mediumCount + ' Средний</span> ' +
+                            '<span class="badge bg-info">' + lowCount + ' Низкий</span>' +
+                            '</div>';
+                        
+                        // Add each issue
+                        validationIssues.forEach(function(issue, index) {
+                            var issueDiv = document.createElement('div');
+                            issueDiv.className = 'validation-issue ' + issue.level;
+                            
+                            var html = '<h6>' + issue.message + '</h6>';
+                            html += '<p>' + issue.recommendation + '</p>';
+                            html += '<pre><code>' + issue.code + '</code></pre>';
+                            html += '<button class="btn btn-sm btn-primary apply-fix" data-index="' + index + '">Применить исправление</button>';
+                            
+                            issueDiv.innerHTML = html;
+                            validationIssuesDiv.appendChild(issueDiv);
+                            
+                            // Also add to security analysis with different button for server-side issues
+                            analysisHtml += '<div class="validation-issue ' + issue.level + ' mb-3">' +
+                                '<h6>' + issue.message + '</h6>' +
+                                '<p>' + issue.recommendation + '</p>' +
+                                '<pre><code>' + issue.code + '</code></pre>' +
+                                '<button class="btn btn-sm btn-primary apply-server-fix" ' + 
+                                'data-code="' + encodeURIComponent(issue.code) + '" ' +
+                                'style="' + (editMode ? 'display:inline-block' : 'display:none') + '">Применить исправление</button>' +
+                                '</div>';
+                        });
+                    } else {
+                        document.getElementById('applyAllFixesBtn').style.display = 'none';
+                        
+                        // Update validation status with success
+                        validationStatusDiv.innerHTML = '<span class="badge bg-success">Конфигурация действительна</span>';
+                        
+                        var issueDiv = document.createElement('div');
+                        issueDiv.className = 'validation-issue success';
+                        issueDiv.innerHTML = '<h6>Проблем безопасности не обнаружено!</h6>';
+                        validationIssuesDiv.appendChild(issueDiv);
+                        
+                        analysisHtml = '<div class="alert alert-success">' +
+                            '<i class="fas fa-check-circle me-2"></i> Проблем безопасности не обнаружено!' +
+                            '</div>';
+                    }
+                    
+                    securityAnalysisContent.innerHTML = analysisHtml;
+                    validationResultsDiv.style.display = 'block';
+                    
+                    // Add event listeners to apply fix buttons in validation results
+                    document.querySelectorAll('.apply-fix').forEach(function(button) {
+                        button.addEventListener('click', function() {
+                            const index = parseInt(this.getAttribute('data-index'));
+                            applyFix(validationIssues[index]);
+                        });
+                    });
+                    
+                    // Add event listeners to apply fix buttons in security analysis
+                    document.querySelectorAll('.apply-server-fix').forEach(function(button) {
+                        button.addEventListener('click', function() {
+                            const code = this.getAttribute('data-code');
+                            const issue = validationIssues.find(i => i.code === code);
+                            if (issue) {
+                                applyFix(issue);
+                            }
+                        });
+                    });
+                } else {
+                    validationStatusDiv.innerHTML = '<span class="badge bg-danger">Ошибка проверки</span>';
+                    alert('Не удалось проверить конфигурацию');
+                }
+            },
+            error: function() {
+                document.getElementById('validationStatus').innerHTML = '<span class="badge bg-danger">Ошибка проверки</span>';
+                alert('Не удалось проверить конфигурацию');
+            }
+        });
+    }
+    
+    // Apply a single fix
+    function applyFix(issue) {
+        if (!editMode) {
+            // If not in edit mode, switch to edit mode first
+            toggleMode(true);
+        }
+        
+        var content = editor.getValue();
+        var fixedContent = intelligentlyInsertFix(content, issue.code);
+        editor.setValue(fixedContent);
+    }
+    
+    // Apply all fixes
+    function applyAllFixes() {
+        if (!editMode) {
+            // If not in edit mode, switch to edit mode first
+            toggleMode(true);
+        }
+        
+        var content = editor.getValue();
+        
+        // Apply fixes one by one
+        validationIssues.forEach(function(issue) {
+            content = intelligentlyInsertFix(content, issue.code);
+        });
+        
+        editor.setValue(content);
+        
+        // Re-validate after applying all fixes
+        setTimeout(validateConfiguration, 500);
+    }
+    
+    // Connect the action button to apply all fixes function
+    document.getElementById('applyAllFixesActionBtn').addEventListener('click', applyAllFixes);
+    document.getElementById('applyAllFixesBtn').addEventListener('click', applyAllFixes);
+    
+    // Intelligently insert fix at appropriate position in the configuration
+    function intelligentlyInsertFix(content, fixCode) {
+        // Split content into lines
+        var lines = content.split('\n');
+        var fixLines = fixCode.trim().split('\n');
+        var firstFixLine = fixLines[0].trim();
+        
+        // Determine what kind of directive we're adding
+        if (firstFixLine.startsWith('server_tokens')) {
+            // Server directive - add to the beginning of the server block
+            return insertInServerBlock(content, fixCode);
+        } else if (firstFixLine.includes('header')) {
+            // Headers should go in the server block
+            return insertInServerBlock(content, fixCode);
+        } else if (firstFixLine.startsWith('ssl_')) {
+            // SSL directives should go in the server block for HTTPS
+            return insertInServerBlock(content, fixCode, true);
+        } else if (firstFixLine.startsWith('client_')) {
+            // Client directives usually go in the http or server block
+            return insertInHttpOrServerBlock(content, fixCode);
+        } else if (firstFixLine.startsWith('limit_req_zone')) {
+            // Rate limiting directives go in the http block
+            return insertInHttpBlock(content, fixCode);
+        } else if (firstFixLine.startsWith('log_format')) {
+            // Log formats go in the http block
+            return insertInHttpBlock(content, fixCode);
+        } else if (firstFixLine.includes('large_client_header_buffers')) {
+            // Buffer settings usually go in the http or server block
+            return insertInHttpOrServerBlock(content, fixCode);
+        } else {
+            // Default: if not sure, just append to the end of the server block
+            return insertInServerBlock(content, fixCode);
+        }
+    }
+    
+    // Insert directive in the server block
+    function insertInServerBlock(content, fixCode, preferHttps = false) {
+        var httpServerPos = content.indexOf('server {');
+        var httpsServerPos = content.indexOf('listen 443');
+        
+        // Add directive to the appropriate server block
+        if (preferHttps && httpsServerPos > -1) {
+            // Find the HTTPS server block opening brace
+            var httpsBlockStart = content.indexOf('{', httpsServerPos);
+            if (httpsBlockStart > -1) {
+                return content.substring(0, httpsBlockStart + 1) + 
+                       '\n    ' + fixCode + 
+                       content.substring(httpsBlockStart + 1);
+            }
+        }
+        
+        // If no HTTPS block or not preferring HTTPS, use the first server block
+        if (httpServerPos > -1) {
+            var blockStart = content.indexOf('{', httpServerPos);
+            if (blockStart > -1) {
+                return content.substring(0, blockStart + 1) + 
+                       '\n    ' + fixCode + 
+                       content.substring(blockStart + 1);
+            }
+        }
+        
+        // If no server block found, just append to the end
+        return content + '\n\nserver {\n    ' + fixCode + '\n}';
+    }
+    
+    // Insert directive in the http block
+    function insertInHttpBlock(content, fixCode) {
+        var httpPos = content.indexOf('http {');
+        
+        if (httpPos > -1) {
+            var blockStart = content.indexOf('{', httpPos);
+            if (blockStart > -1) {
+                return content.substring(0, blockStart + 1) + 
+                       '\n    ' + fixCode + 
+                       content.substring(blockStart + 1);
+            }
+        }
+        
+        // If no http block found, look for server block
+        return insertBeforeFirstServerBlock(content, fixCode);
+    }
+    
+    // Insert directive before the first server block
+    function insertBeforeFirstServerBlock(content, fixCode) {
+        var serverPos = content.indexOf('server {');
+        
+        if (serverPos > -1) {
+            return content.substring(0, serverPos) + 
+                   fixCode + '\n\n' + 
+                   content.substring(serverPos);
+        }
+        
+        // If no server block found, just append to the end
+        return content + '\n\n' + fixCode;
+    }
+    
+    // Insert directive in http block or server block depending on what exists
+    function insertInHttpOrServerBlock(content, fixCode) {
+        var httpPos = content.indexOf('http {');
+        
+        if (httpPos > -1) {
+            return insertInHttpBlock(content, fixCode);
+        } else {
+            return insertInServerBlock(content, fixCode);
+        }
+    }
+    
+    // Delete confirmation
+    function confirmDelete(url) {
+        document.getElementById('deleteForm').action = url;
+        new bootstrap.Modal(document.getElementById('confirmDeleteModal')).show();
+    }
+</script>
+{% endblock %} 

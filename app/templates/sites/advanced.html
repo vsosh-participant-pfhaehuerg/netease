@@ -1,0 +1,476 @@
+{% extends "base.html" %}
+
+{% block title %}Advanced Configuration - Nginx Manager{% endblock %}
+
+{% block head_extra %}
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.3/codemirror.min.css">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.3/theme/monokai.min.css">
+<style>
+    .CodeMirror {
+        height: 500px;
+        border: 1px solid #ddd;
+        border-radius: 4px;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="row mt-4">
+    <div class="col-md-12 d-flex justify-content-between align-items-center">
+        <h1>Advanced Nginx Configuration</h1>
+        <div>
+            <a href="{{ url_for('sites.index') }}" class="btn btn-secondary">
+                <i class="fas fa-arrow-left"></i> Back
+            </a>
+        </div>
+    </div>
+</div>
+
+<div class="row mt-4">
+    <div class="col-md-8">
+        <div class="card">
+            <div class="card-header">
+                <div class="d-flex justify-content-between align-items-center">
+                    <h5 class="card-title mb-0">Create Custom Configuration</h5>
+                    <div>
+                        <button id="validateBtn" class="btn btn-warning">
+                            <i class="fas fa-shield-alt"></i> Validate
+                        </button>
+                    </div>
+                </div>
+            </div>
+            <div class="card-body">
+                <form id="advancedConfigForm" action="{{ url_for('configs.save') }}" method="post">
+                    <div class="mb-3">
+                        <label for="config_name" class="form-label">Configuration Name</label>
+                        <div class="input-group">
+                            <input type="text" id="config_name" name="config_name" class="form-control" placeholder="advanced" required>
+                            <span class="input-group-text">.conf</span>
+                        </div>
+                        <div class="form-text">The name of the configuration file (without the .conf extension)</div>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label for="editor" class="form-label">Configuration Content</label>
+                        <textarea id="editor" name="content" class="form-control code-editor">server {
+    listen 80;
+    server_name example.com;
+    
+    # Add your custom configuration here
+    
+    location / {
+        root /var/www/html;
+        index index.html;
+        try_files $uri $uri/ =404;
+    }
+}</textarea>
+                    </div>
+                    
+                    <div id="validationResults" class="mb-3" style="display: none;">
+                        <div class="d-flex justify-content-between align-items-center mb-2">
+                            <h5 class="mb-0">Validation Results</h5>
+                            <button type="button" id="applyAllFixesBtn" class="btn btn-primary btn-sm">
+                                <i class="fas fa-magic"></i> Apply All Fixes
+                            </button>
+                        </div>
+                        <div id="validationIssues"></div>
+                    </div>
+                    
+                    <div class="d-grid gap-2">
+                        <button type="submit" class="btn btn-primary">
+                            <i class="fas fa-save"></i> Save Configuration
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-md-4">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="card-title">Configuration Templates</h5>
+            </div>
+            <div class="card-body">
+                <div class="list-group">
+                    <a href="#" class="list-group-item list-group-item-action" data-template="load-balancer">
+                        <div class="d-flex w-100 justify-content-between">
+                            <h6 class="mb-1">Load Balancer</h6>
+                        </div>
+                        <p class="mb-1">Distribute traffic across multiple servers</p>
+                    </a>
+                    <a href="#" class="list-group-item list-group-item-action" data-template="ssl">
+                        <div class="d-flex w-100 justify-content-between">
+                            <h6 class="mb-1">SSL/HTTPS</h6>
+                        </div>
+                        <p class="mb-1">Secure configuration with SSL/TLS</p>
+                    </a>
+                    <a href="#" class="list-group-item list-group-item-action" data-template="cache">
+                        <div class="d-flex w-100 justify-content-between">
+                            <h6 class="mb-1">Caching</h6>
+                        </div>
+                        <p class="mb-1">Static content caching configuration</p>
+                    </a>
+                    <a href="#" class="list-group-item list-group-item-action" data-template="php-fpm">
+                        <div class="d-flex w-100 justify-content-between">
+                            <h6 class="mb-1">PHP-FPM</h6>
+                        </div>
+                        <p class="mb-1">Configuration for PHP applications</p>
+                    </a>
+                </div>
+            </div>
+        </div>
+        
+        <div class="card mt-4">
+            <div class="card-header">
+                <h5 class="card-title">Security Tips</h5>
+            </div>
+            <div class="card-body">
+                <ul class="list-group list-group-flush">
+                    <li class="list-group-item">
+                        <i class="fas fa-shield-alt text-success me-2"></i> Disable server tokens
+                        <code class="d-block mt-1">server_tokens off;</code>
+                    </li>
+                    <li class="list-group-item">
+                        <i class="fas fa-shield-alt text-success me-2"></i> Add security headers
+                        <code class="d-block mt-1">add_header X-Frame-Options "SAMEORIGIN";</code>
+                    </li>
+                    <li class="list-group-item">
+                        <i class="fas fa-shield-alt text-success me-2"></i> Configure SSL protocols
+                        <code class="d-block mt-1">ssl_protocols TLSv1.2 TLSv1.3;</code>
+                    </li>
+                    <li class="list-group-item">
+                        <i class="fas fa-shield-alt text-success me-2"></i> Limit request size
+                        <code class="d-block mt-1">client_max_body_size 10m;</code>
+                    </li>
+                </ul>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.3/codemirror.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.3/mode/nginx/nginx.min.js"></script>
+<script>
+    // Initialize CodeMirror
+    var editor = CodeMirror.fromTextArea(document.getElementById('editor'), {
+        mode: 'nginx',
+        theme: 'monokai',
+        lineNumbers: true,
+        indentUnit: 4,
+        lineWrapping: true,
+        extraKeys: {
+            "Tab": function(cm) {
+                cm.replaceSelection("    ", "end");
+            }
+        }
+    });
+    
+    // Global variable to store all issues
+    let validationIssues = [];
+    
+    // Template configurations
+    var templates = {
+        "load-balancer": `upstream backend {
+    server backend1.example.com weight=5;
+    server backend2.example.com;
+    server backup1.example.com backup;
+}
+
+server {
+    listen 80;
+    server_name example.com;
+
+    location / {
+        proxy_pass http://backend;
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+    }
+}`,
+        "ssl": `server {
+    listen 80;
+    server_name example.com;
+    return 301 https://$host$request_uri;
+}
+
+server {
+    listen 443 ssl http2;
+    server_name example.com;
+    
+    ssl_certificate /etc/nginx/ssl/example.com.crt;
+    ssl_certificate_key /etc/nginx/ssl/example.com.key;
+    ssl_protocols TLSv1.2 TLSv1.3;
+    ssl_prefer_server_ciphers on;
+    ssl_ciphers 'ECDHE-ECDSA-AES128-GCM-SHA256:ECDHE-RSA-AES128-GCM-SHA256:ECDHE-ECDSA-AES256-GCM-SHA384:ECDHE-RSA-AES256-GCM-SHA384';
+    ssl_session_cache shared:SSL:10m;
+    ssl_session_timeout 10m;
+    
+    # Security headers
+    add_header Strict-Transport-Security "max-age=31536000; includeSubDomains" always;
+    add_header X-Frame-Options "SAMEORIGIN" always;
+    add_header X-Content-Type-Options "nosniff" always;
+    add_header X-XSS-Protection "1; mode=block" always;
+    
+    location / {
+        root /var/www/html;
+        index index.html;
+        try_files $uri $uri/ =404;
+    }
+}`,
+        "cache": `server {
+    listen 80;
+    server_name example.com;
+    
+    root /var/www/html;
+    index index.html;
+    
+    # Cache settings
+    location ~* \\.(?:jpg|jpeg|gif|png|ico|woff2|css|js)$ {
+        expires 30d;
+        add_header Cache-Control "public, no-transform";
+    }
+    
+    location / {
+        try_files $uri $uri/ =404;
+    }
+}`,
+        "php-fpm": `server {
+    listen 80;
+    server_name example.com;
+    
+    root /var/www/html;
+    index index.php index.html;
+    
+    location / {
+        try_files $uri $uri/ /index.php?$query_string;
+    }
+    
+    location ~ \\.php$ {
+        include fastcgi_params;
+        fastcgi_pass unix:/var/run/php/php7.4-fpm.sock; # Adjust to your PHP-FPM socket
+        fastcgi_param SCRIPT_FILENAME $document_root$fastcgi_script_name;
+        fastcgi_param PATH_INFO $fastcgi_path_info;
+        fastcgi_intercept_errors on;
+        fastcgi_buffer_size 16k;
+        fastcgi_buffers 4 16k;
+    }
+    
+    # Deny access to hidden files
+    location ~ /\\. {
+        deny all;
+        access_log off;
+        log_not_found off;
+    }
+}`
+    };
+    
+    // Apply template when clicked
+    document.querySelectorAll('[data-template]').forEach(function(element) {
+        element.addEventListener('click', function(e) {
+            e.preventDefault();
+            const templateName = this.getAttribute('data-template');
+            if (templates[templateName]) {
+                editor.setValue(templates[templateName]);
+                
+                // Also suggest a config name based on template
+                const configName = document.getElementById('config_name');
+                if (!configName.value) {
+                    configName.value = templateName;
+                }
+            }
+        });
+    });
+    
+    // Validate configuration
+    document.getElementById('validateBtn').addEventListener('click', function() {
+        var content = editor.getValue();
+        
+        $.ajax({
+            url: '{{ url_for("configs.validate") }}',
+            method: 'POST',
+            data: {
+                content: content
+            },
+            success: function(response) {
+                var validationResultsDiv = document.getElementById('validationResults');
+                var validationIssuesDiv = document.getElementById('validationIssues');
+                
+                validationIssuesDiv.innerHTML = '';
+                
+                if (response.success) {
+                    validationIssues = response.issues || [];
+                    
+                    if (validationIssues.length > 0) {
+                        document.getElementById('applyAllFixesBtn').style.display = 'block';
+                        
+                        validationIssues.forEach(function(issue, index) {
+                            var issueDiv = document.createElement('div');
+                            issueDiv.className = 'validation-issue ' + issue.level;
+                            
+                            var html = '<h6>' + issue.message + '</h6>';
+                            html += '<p>' + issue.recommendation + '</p>';
+                            html += '<pre><code>' + issue.code + '</code></pre>';
+                            html += '<button class="btn btn-sm btn-primary apply-fix" data-index="' + index + '">Apply Fix</button>';
+                            
+                            issueDiv.innerHTML = html;
+                            validationIssuesDiv.appendChild(issueDiv);
+                        });
+                    } else {
+                        document.getElementById('applyAllFixesBtn').style.display = 'none';
+                        
+                        var issueDiv = document.createElement('div');
+                        issueDiv.className = 'validation-issue success';
+                        issueDiv.innerHTML = '<h6>No security issues found!</h6>';
+                        validationIssuesDiv.appendChild(issueDiv);
+                    }
+                    
+                    validationResultsDiv.style.display = 'block';
+                    
+                    // Add event listeners to apply fix buttons
+                    document.querySelectorAll('.apply-fix').forEach(function(button) {
+                        button.addEventListener('click', function() {
+                            const index = parseInt(this.getAttribute('data-index'));
+                            applyFix(validationIssues[index]);
+                        });
+                    });
+                } else {
+                    alert('Failed to validate configuration');
+                }
+            },
+            error: function() {
+                alert('Failed to validate configuration');
+            }
+        });
+    });
+    
+    // Apply a single fix
+    function applyFix(issue) {
+        var content = editor.getValue();
+        var fixedContent = intelligentlyInsertFix(content, issue.code);
+        editor.setValue(fixedContent);
+    }
+    
+    // Apply all fixes
+    document.getElementById('applyAllFixesBtn').addEventListener('click', function() {
+        var content = editor.getValue();
+        
+        // Apply fixes one by one
+        validationIssues.forEach(function(issue) {
+            content = intelligentlyInsertFix(content, issue.code);
+        });
+        
+        editor.setValue(content);
+    });
+    
+    // Intelligently insert fix at appropriate position in the configuration
+    function intelligentlyInsertFix(content, fixCode) {
+        // Split content into lines
+        var lines = content.split('\n');
+        var fixLines = fixCode.trim().split('\n');
+        var firstFixLine = fixLines[0].trim();
+        
+        // Determine what kind of directive we're adding
+        if (firstFixLine.startsWith('server_tokens')) {
+            // Server directive - add to the beginning of the server block
+            return insertInServerBlock(content, fixCode);
+        } else if (firstFixLine.includes('header')) {
+            // Headers should go in the server block
+            return insertInServerBlock(content, fixCode);
+        } else if (firstFixLine.startsWith('ssl_')) {
+            // SSL directives should go in the server block for HTTPS
+            return insertInServerBlock(content, fixCode, true);
+        } else if (firstFixLine.startsWith('client_')) {
+            // Client directives usually go in the http or server block
+            return insertInHttpOrServerBlock(content, fixCode);
+        } else if (firstFixLine.startsWith('limit_req_zone')) {
+            // Rate limiting directives go in the http block
+            return insertInHttpBlock(content, fixCode);
+        } else if (firstFixLine.startsWith('log_format')) {
+            // Log formats go in the http block
+            return insertInHttpBlock(content, fixCode);
+        } else if (firstFixLine.includes('large_client_header_buffers')) {
+            // Buffer settings usually go in the http or server block
+            return insertInHttpOrServerBlock(content, fixCode);
+        } else {
+            // Default: if not sure, just append to the end of the server block
+            return insertInServerBlock(content, fixCode);
+        }
+    }
+    
+    // Insert directive in the server block
+    function insertInServerBlock(content, fixCode, preferHttps = false) {
+        var httpServerPos = content.indexOf('server {');
+        var httpsServerPos = content.indexOf('listen 443');
+        
+        // Add directive to the appropriate server block
+        if (preferHttps && httpsServerPos > -1) {
+            // Find the HTTPS server block opening brace
+            var httpsBlockStart = content.indexOf('{', httpsServerPos);
+            if (httpsBlockStart > -1) {
+                return content.substring(0, httpsBlockStart + 1) + 
+                       '\n    ' + fixCode + 
+                       content.substring(httpsBlockStart + 1);
+            }
+        }
+        
+        // If no HTTPS block or not preferring HTTPS, use the first server block
+        if (httpServerPos > -1) {
+            var blockStart = content.indexOf('{', httpServerPos);
+            if (blockStart > -1) {
+                return content.substring(0, blockStart + 1) + 
+                       '\n    ' + fixCode + 
+                       content.substring(blockStart + 1);
+            }
+        }
+        
+        // If no server block found, just append to the end
+        return content + '\n\nserver {\n    ' + fixCode + '\n}';
+    }
+    
+    // Insert directive in the http block
+    function insertInHttpBlock(content, fixCode) {
+        var httpPos = content.indexOf('http {');
+        
+        if (httpPos > -1) {
+            var blockStart = content.indexOf('{', httpPos);
+            if (blockStart > -1) {
+                return content.substring(0, blockStart + 1) + 
+                       '\n    ' + fixCode + 
+                       content.substring(blockStart + 1);
+            }
+        }
+        
+        // If no http block found, look for server block
+        return insertBeforeFirstServerBlock(content, fixCode);
+    }
+    
+    // Insert directive before the first server block
+    function insertBeforeFirstServerBlock(content, fixCode) {
+        var serverPos = content.indexOf('server {');
+        
+        if (serverPos > -1) {
+            return content.substring(0, serverPos) + 
+                   fixCode + '\n\n' + 
+                   content.substring(serverPos);
+        }
+        
+        // If no server block found, just append to the end
+        return content + '\n\n' + fixCode;
+    }
+    
+    // Insert directive in http block or server block depending on what exists
+    function insertInHttpOrServerBlock(content, fixCode) {
+        var httpPos = content.indexOf('http {');
+        
+        if (httpPos > -1) {
+            return insertInHttpBlock(content, fixCode);
+        } else {
+            return insertInServerBlock(content, fixCode);
+        }
+    }
+</script>
+{% endblock %} 

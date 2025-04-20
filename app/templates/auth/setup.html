@@ -1,0 +1,59 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="container mt-5">
+    <div class="row justify-content-center">
+        <div class="col-md-8">
+            <div class="card">
+                <div class="card-header">
+                    <h3 class="text-center">Начальная настройка</h3>
+                </div>
+                <div class="card-body">
+                    <form method="POST">
+                        <div class="form-group mb-4">
+                            <h4>Лицензионное соглашение</h4>
+                            <div class="border p-3 mb-3" style="height: 200px; overflow-y: auto;">
+                                <p>ПОЛЬЗОВАТЕЛЬСКОЕ СОГЛАШЕНИЕ</p>
+                                <p>Настоящее Пользовательское Соглашение регулирует отношения между Пользователем и Программным обеспечением.</p>
+                                
+                                <h5>1. ОБЩИЕ ПОЛОЖЕНИЯ</h5>
+                                <p>1.1. Данное программное обеспечение является локальным приложением и не отправляет никакие данные на внешние серверы.</p>
+                                <p>1.2. Все данные хранятся исключительно на локальном компьютере пользователя.</p>
+                                
+                                <h5>2. КОНФИДЕНЦИАЛЬНОСТЬ</h5>
+                                <p>2.1. Приложение не собирает и не передает никакую личную информацию пользователя.</p>
+                                <p>2.2. Все конфигурации и настройки хранятся локально на компьютере пользователя.</p>
+                                
+                                <h5>3. БЕЗОПАСНОСТЬ</h5>
+                                <p>3.1. Пароль и другие конфиденциальные данные хранятся в зашифрованном виде на локальном компьютере.</p>
+                                <p>3.2. Пользователь несет полную ответственность за сохранность своего пароля.</p>
+                            </div>
+                            <div class="form-check mb-3">
+                                <input type="checkbox" class="form-check-input" id="accept_license" name="accept_license" required>
+                                <label class="form-check-label" for="accept_license">
+                                    Я принимаю условия лицензионного соглашения
+                                </label>
+                            </div>
+                        </div>
+
+                        <div class="form-group mb-3">
+                            <label for="password">Создайте пароль</label>
+                            <input type="password" class="form-control" id="password" name="password" required minlength="6">
+                            <small class="form-text text-muted">Минимум 6 символов</small>
+                        </div>
+
+                        <div class="form-group mb-4">
+                            <label for="password_confirm">Подтвердите пароль</label>
+                            <input type="password" class="form-control" id="password_confirm" name="password_confirm" required minlength="6">
+                        </div>
+
+                        <div class="d-grid">
+                            <button type="submit" class="btn btn-primary">Завершить настройку</button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %} 
